@@ -1,0 +1,23 @@
+version: 0.2
+phases:
+  install:
+    commands:
+      - echo "No commands"
+  pre_build:
+    commands:
+      - echo "Making sure npm is installed"
+      - apt-get -y update && apt-get install -y npm jq
+      - echo `npm --version`
+  build:
+    commands:
+      - echo $PWD
+      - PKG=`cat package.json | jq '.name'`
+      - echo 'We are now running the node install on $PKG'
+      - npm install 
+  post_build:
+    commands:
+      - echo 'Now in the post_build phase...'
+      - echo $PWD
+artifacts:
+   files:
+      - '**/*'     
