@@ -9,10 +9,10 @@ The template named `3-stage-custom-action-codepipeline.json` extends the other
 template by adding a custom action deploy stage that deploys to a custom provider 
 called 'Artifactory'.
 
-*Before* using either of those templates, you first need to change some of the 
+**Before** using either of those templates, you first need to change some of the 
 values to match your use case.
 
-*Before* using the template named `3-stage-custom-action-codepipeline.json`, 
+**Before** using the template named `3-stage-custom-action-codepipeline.json`, 
 you must first create the Artifactory custom action defined in [this JSON file](../custom-action/artifactory_custom_action_deploy_npm.json) 
 by executing the command 
 
@@ -37,7 +37,7 @@ All of these changes will be done in the `Deploy` section of the JSON file:
 - In the `configuration` section
 	- For the `UserName` value, replace `<ARTIFACTORY-USER>` with your Artifactory user name
 	- For the `ArtifactoryHost`, replace `<ARTIFACTORY-HOST>` with the URL endpoint of your Artifactory host
-	- For the `Password`, replace `<ARTIFACTORY-USER-PASSWORD>` with a password. *NOTE* - I would recommend entering a placeholder value and replace it later with the correct value through the console. This value is defined as secret and will not be reflected in plain-text in the console window.
+	- For the `Password`, replace `<ARTIFACTORY-USER-PASSWORD>` with a password. **NOTE** - I would recommend entering a placeholder value and replace it later with the correct value through the console. This value is defined as secret and will not be reflected in plain-text in the console window.
 	- For `EmailAddress`, replace `<YOUR-EMAIL-ADDRESS>` with your email address
 
 Once you have made the necessary changes to the JSON file you want to use to define your pipeline, create the pipeline through the [AWS Command Line Interface (CLI)](https://aws.amazon.com/cli/) with the following command:
