@@ -13,7 +13,7 @@
         "key": true,
 	"secret": false,
 	"type": "String",
-	"description": "Name of the respository in which this artifact should be stored"
+	"description": "Name of the repository in which this artifact should be stored"
     },
     {   "name": "UserName",
         "required": true,
