@@ -86,7 +86,7 @@ So now, the worker is polling for jobs with the category: __'Deploy'__, the owne
 
 Deploying artifacts via the command line or AWS CloudFormation can be found in the `codepipeline-templates` directory
 
-Within this directory, you will find files that can be used to create an initial 2-stage AWS CodePipeline pipeline, a 3-stage AWS CodePipeline pipeline, and an AWS CloudFormation template that will stand up assets needed to build an NPM project and commit them to an Aritfactory NPM repository. For more details, please read the directory's [README.md](/codepipeline-templates/README.md)
+Within this directory, you will find files that can be used to create an initial 2-stage AWS CodePipeline pipeline, a 3-stage AWS CodePipeline pipeline, and an AWS CloudFormation template that will stand up assets needed to build an NPM project and commit them to an Aritfactory NPM repository. For more details, please read the directory's [README.md](codepipeline-templates/README.md)
 
 ## License
 
