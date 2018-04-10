@@ -46,7 +46,7 @@
     "provider": "Artifactory",
     "version": "1",
     "settings": {
-        "entityUrlTemplate": "{Config:ArtifactoryHost}/artifactory/{Config:TypeOfArtifact}/{Config:RepoKey}/"
+        "entityUrlTemplate": "{Config:ArtifactoryHost}/artifactory/webapp/#/artifacts/browse/tree/General/{Config:RepoKey}"
     },
     "inputArtifactDetails": {
         "maximumCount": 5,
