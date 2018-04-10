@@ -42,7 +42,6 @@ CA_VERSION = sys.argv[1]
 instance_info = boto.utils.get_instance_identity()
 worker_region = instance_info['document']['region']
 codepipeline = boto3.client('codepipeline', region_name=worker_region)
-# These should be pulled from the config parameters
 
 
 def get_bucket_location(bucketName, init_client):
