@@ -59,7 +59,7 @@
         ],
         "artifactStore": {
             "type": "S3",
-            "location": "<AWS-ACCOUNT-NUMBER>-codepipelineartifact-us-west-2"
+            "location": "<CODEPIPELINE-BUCKET-IN-SAME-REGION>"
         },
         "name": "<NAME-OF-PIPELINE>",
         "version": 1
