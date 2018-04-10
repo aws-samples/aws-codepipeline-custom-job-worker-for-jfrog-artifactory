@@ -43,3 +43,22 @@ All of these changes will be done in the `Deploy` section of the JSON file:
 Once you have made the necessary changes to the JSON file you want to use to define your pipeline, create the pipeline through the [AWS Command Line Interface (CLI)](https://aws.amazon.com/cli/) with the following command:
 
 `aws codepipeline create-pipeline --cli-input-json file://source-build-actions-codepipeline.json --region 'us-west-2'`
+
+### Using the CloudFormatoni template to create an AWS CodePipeline, AWS CodeBuild, and AWS CodePipline Custom Action, and AWS CodePipeline Custom Worker
+Prerequisites for this template:
+- Exiting AWS CodeCommit repository containing a Node.js repository. And exmaple can be found in the node-example directory
+- An Amazon S3 bucket containing a zip archive of the npm_job_worker.py and requirements.txt in the custom-action directory
+- An Amazon S3 bucket to be used for the output artifacts from AWS CodePipeline. Can be the same bucket as above.
+- An Artifactory host
+- An exiting Amazon VPC. If you need to build a new one, you can use the [AWS VPC QuickStart](https://github.com/aws-quickstart/quickstart-aws-vpc)
+
+This CloudFormation template creates the following resources:
+- AWS CodeBuild project
+- AWS CodePipeline Custom Action
+- AWS CodePipeline
+- Amazon EC2 Launch Config and AutoScaling Group for the Custom Worker
+- IAM Role for the CodeBuild project, the CodePipeline pipeline, and the EC2 worker
+
+The CodePipleine creates 3 stages - a Source stage configured for the CodeCommit repository, a Build stage configured with the CodeBuild project, and a Deploy stage configured for the Custom Action defined for the Artifactory repository.
+
+The launch configuration for the Custom Worker installs the appropriate packages, pulls the zip archive of the worker code from the S3 bucket, and runs the worker python script that polls the CodePipeline for jobs.
