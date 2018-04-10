@@ -82,6 +82,12 @@ __on the EC2 instance__
 
 So now, the worker is polling for jobs with the category: __'Deploy'__, the owner: __'Custom'__, the provider: __'Artifactory'__, and version: __'1'__
 
+### Deployment Scripts
+
+Deploying artifacts via the command line or AWS CloudFormation can be found in the `codepipeline-templates` directory
+
+Within this directory, you will find files that can be used to create an initial 2-stage AWS CodePipeline pipeline, a 3-stage AWS CodePipeline pipeline, and an AWS CloudFormation template that will stand up assets needed to build an NPM project and commit them to an Aritfactory NPM repository. For more details, please read the directory's [README.md](/codepipeline-templates/README.md)
+
 ## License
 
 This library is licensed under the Apache 2.0 License. 
