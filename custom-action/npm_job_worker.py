@@ -32,7 +32,12 @@ import shutil
 from botocore.exceptions import ClientError
 from boto3.session import Session
 import boto.utils
-# Not sure how to get the Pipeline region before creating the client
+
+if len(sys.argv) != 2:
+    print('Setting Custom Action version to 1')
+    sys.argv[1] = 1
+
+CA_VERSION = sys.argv[1]
 
 instance_info = boto.utils.get_instance_identity()
 worker_region = instance_info['document']['region']
@@ -228,11 +233,11 @@ def grab_job_info(job):
 
 def poll_for_jobs():
     try:
-        jobs = codepipeline.poll_for_jobs(actionTypeId={'category': 'Deploy', 'owner': 'Custom', 'provider': 'Artifactory', 'version': '1'})
+        jobs = codepipeline.poll_for_jobs(actionTypeId={'category': 'Deploy', 'owner': 'Custom', 'provider': 'Artifactory', 'version': CA_VERSION})
         while not jobs['jobs']:
             print("There are no jobs: " + str(jobs['jobs']))
             time.sleep(10)
-            jobs = codepipeline.poll_for_jobs(actionTypeId={'category': 'Deploy', 'owner': 'Custom', 'provider': 'Artifactory', 'version': '1'})
+            jobs = codepipeline.poll_for_jobs(actionTypeId={'category': 'Deploy', 'owner': 'Custom', 'provider': 'Artifactory', 'version': CA_VERSION})
             if jobs['jobs']:
                 print('Found jobs!')
         return(jobs)
