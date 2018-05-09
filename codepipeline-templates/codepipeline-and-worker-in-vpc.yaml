@@ -1,0 +1,609 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: This AWS CloudFormation template will set up an AWS CodePipeline that includes an AWS CodeCommit source action, an AWS CodeBuild build action, and a Custom Action for JFrog Artifactory, as well as sets up an Amazon EC2 worker for the custom action in an autoscaling group
+Metadata:
+  LICENSE: >-
+   Copyright 2017 Amazon Web Services
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - 
+        Label:
+          default: 'AWS CodePipeline Configuration'
+        Parameters:
+          - CodePipelineName
+          - CodeCommitRepository
+          - ProjectId
+          - OutputBucketName
+      - 
+        Label:
+          default: 'Jfrog Artifactory Custom Action Configuration'
+        Parameters:
+          - ArtifactoryUser
+          - ArtifactoryPassword
+          - EmailAddress
+          - ArtifactoryHost
+          - TypeOfArtifact
+          - CustomActionVersion
+      - 
+        Label:
+          default: 'JFrog Artifactory Custom Worker Cluster Details'
+        Parameters:
+          - CustomWorkerSourceS3Bucket
+          - CustomWorkerSourceObject
+          - InstanceType
+          - KeyName
+          - ClusterSize
+          - MaxClusterSize
+          - MinClusterSize
+          - SourceCidr
+          - VPCId
+          - VPCSubnets
+    ParameterLabels:
+      CodePipelineName:
+        default: 'Name of new AWS CodePipeline pipeline'
+      ProjectId:
+        default: 'Name of new AWS CodeBuild project'
+      ArtifactoryUser:
+        default: 'Artifactory User'
+      ArtifactoryPassword:
+        default: 'Password for Artifactory User'
+      EmailAddress: 
+        default: 'Email address, needed to authenticate with NPM repository'
+      ArtifactoryHost:
+        default: 'Artifactory Host URL'
+      TypeOfArtifact:
+        default: 'Type of artifact to build and commit to repository'
+      CustomActionVersion:
+        default: 'Version of Custom Action'
+      CodeCommitRepository:
+        default: 'Existing AWS CodeCommit Repository'
+      OutputBucketName:
+        default: 'Existing Amazon S3 bucket to use for CodePipeline artifacts'
+      CustomWorkerSourceObject:
+        default: 'Zip archive file name'
+      CustomWorkerSourceS3Bucket:
+        default: 'Amazon S3 bucket location for zipped worker artifact'
+      InstanceType:
+        default: 'Instance Type'
+      KeyName:
+        default: 'Name of existing SSH key'
+      ClusterSize:
+        default: 'Desired number of Amazon EC2 worker instances'
+      MaxClusterSize:
+        default: 'Maximum number of Amazon EC2 worker instances'
+      MinClusterSize:
+        default: 'Minimum number of Amazon EC2 worker instances'
+      SourceCidr:
+        default: 'Allowed external access CIDR'
+      VPCId:
+        default: 'Existing VPC Id'
+      VPCSubnets:
+        default: 'VPC subnets in which to launch the Amazon EC2 worker instances'
+Parameters:
+  OutputBucketName:
+    Description: 'A new S3 bucket that CodePipeline will use for artifacts.'
+    Type: String
+  ArtifactoryUser:
+    Description: 'Username to authenticate with the JFrog Artifactory repository'
+    Type: String
+  ArtifactoryPassword:
+    Description: "Password for authenticating with the repository"
+    Type: String
+    NoEcho: true
+  EmailAddress:
+    Description: 'Email address used to authenticate with the repository'
+    Type: String
+  ArtifactoryHost:
+    Description: 'Public address of Artifactory host, ex: https://artifactoryhost.example.com or http://artifactoryhost.example.com:8080'
+    Type: String
+  TypeOfArtifact:
+    Description: The package type, ex. npm, yum, gem. This value is used for Artifactory repository type of artifact as well as the repository key
+    Default: npm
+    Type: String
+  InstanceType:
+    Default: t2.small
+    Description: The Amazon EC2 instance type to use.
+    Type: String
+    AllowedValues:
+      - "t1.micro"
+      - "t2.nano"
+      - "t2.micro"
+      - "t2.small"
+      - "t2.medium"
+      - "t2.large"
+      - "m3.medium"
+      - "m3.large"
+      - "m3.xlarge"
+      - "m3.2xlarge"
+      - "m4.large"
+      - "m4.xlarge"
+      - "m4.2xlarge"
+      - "m4.4xlarge"
+      - "m4.10xlarge"
+    ConstraintDescription: must be a valid EC2 instance type.
+  KeyName:
+    Description: The name of the key pair used to make SSH connections to Amazon EC2 instances.
+    Type: AWS::EC2::KeyPair::KeyName
+  ProjectId:
+    AllowedPattern: ^[a-z]([a-z0-9-])+$
+    ConstraintDescription: Project IDs must be between 2 and 15 characters, begin with a letter, and only contain lowercase letters, numbers, and hyphens (-).
+    Type: String
+  MaxClusterSize:
+    Description: Maximum size of the Custom Worker cluster
+    Type: String
+    Default: 2
+  ClusterSize: 
+    Description: Default size of the Custom Workercluster
+    Type: String
+    Default: 1
+  MinClusterSize:
+    Description: Minumum size of the Custom Worker cluster
+    Type: String
+    Default: 1 
+  CodeCommitRepository:
+    Description: Name of existing AWS CodeCommit repository that holds the NodeJS source code.
+    MaxLength: 100
+    MinLength: 1
+    Type: String
+  SourceCidr:
+    Description: The source CIDR block that will be administrating the EC2 custom worker for CodePipeline (an entry of 0.0.0.0/0 will allow access from anywhere)
+    Type: String
+    MinLength: 9
+    MaxLength: 18
+  CustomWorkerSourceS3Bucket:
+    Description: The Bucket name and any possible prefix. Ex - if the application zip is in example-s3-bucket/worker/worker.zip, this value would be example-s3-bucket/worker
+    Type: String
+  CustomWorkerSourceObject:
+    Description: The zip archive of requirements.txt and npm_job_worker.py from the GitHub repository https://github.com/aws-samples/aws-codepipeline-custom-job-worker-for-jfrog-artifactory
+    Type: String
+  CustomActionVersion:
+    Description: Version of the Custom Action Type - default '1'
+    Default: 1
+    Type: String
+  VPCId:
+    Description: VpcId of your existing Virtual Private Cloud (VPC)
+    ConstraintDescription : must be the VPC Id of an existing Virtual Private Cloud.
+    Type: AWS::EC2::VPC::Id
+  VPCSubnets:
+    Description: The list of SubnetIds in your Virtual Private Cloud (VPC)
+    ConstraintDescription: must be a list of at least two existing subnets associated with at least two different availability zones. They     should be residing in the selected Virtual Private Cloud
+    Type: List<AWS::EC2::Subnet::Id>
+
+Mappings:
+  AWSAMIRegionMap:
+    AMI:
+      AMZNLINUX: amzn-ami-hvm-2017.09.1.20180115-x86_64-gp2
+    ap-northeast-1:
+      AMZNLINUX: ami-ceafcba8
+    ap-northeast-2: 
+      AMZNLINUX: ami-863090e8
+    ap-south-1:
+      AMZNLINUX: ami-531a4c3c
+    ap-southeast-1:
+      AMZNLINUX: ami-68097514
+    ap-southeast-2:
+      AMZNLINUX: ami-942dd1f6
+    ca-central-1:
+      AMZNLINUX: ami-a954d1cd
+    eu-central-1:
+      AMZNLINUX: ami-5652ce39
+    eu-west-1:
+      AMZNLINUX: ami-d834aba1
+    eu-west-2:
+      AMZNLINUX: ami-403e2524
+    sa-east-1:
+      AMZNLINUX: ami-84175ae8
+    us-east-1:
+      AMZNLINUX: ami-97785bed
+    us-east-2:
+      AMZNLINUX: ami-f63b1193
+    us-west-1:
+      AMZNLINUX: ami-824c4ee2
+    us-west-2:
+      AMZNLINUX: ami-f2d3638a
+Resources:
+  CodeBuildRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: jfrog-codebuild-policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:GetObject'
+                  - 's3:GetObjectVersion'
+                  - 's3:PutObject'
+                Resource:
+                  - !Join ['', ['arn:aws:s3:::', !Ref 'OutputBucketName']]
+                  - !Join ['', ['arn:aws:s3:::', !Ref 'OutputBucketName', '/*']]
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: '*'
+  CodeBuild:
+    Type: 'AWS::CodeBuild::Project'
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image:  aws/codebuild/nodejs:7.0.0
+        Type: LINUX_CONTAINER
+      Name: 'NodeJSCustomSourceActionBuild'
+      ServiceRole: !Ref CodeBuildRole
+      Source:
+        Type: CODEPIPELINE
+
+  JFrogCustomAction:
+    Type: "AWS::CodePipeline::CustomActionType"
+    Properties:
+      Category: Deploy
+      ConfigurationProperties:
+        - 
+          Name: TypeOfArtifact
+          Required: true
+          Key: true
+          Secret: false
+          Description: "The package type, ex. npm, yum, gem"
+          Type: String
+        -
+          Name: RepoKey
+          Required: true
+          Key: true
+          Secret: false
+          Type: String
+          Description: "Name of the respository in which this artifact should be stored"
+        -
+          Name: UserName
+          Required: true
+          Key: true
+          Secret: false
+          Type: String
+          Description: "Username for authenticating with the repository"
+        -
+          Name: Password
+          Required: true
+          Key: true
+          Secret: true
+          Type: String
+          Description: "Password for authenticating with the repository"
+        -
+          Name: EmailAddress
+          Required: true
+          Key: true
+          Secret: false
+          Type: String
+          Description: "Email address used to authenticate with the repository"
+        -
+          Name: ArtifactoryHost
+          Required: true
+          Key: true
+          Secret: false
+          Type: String
+          Description: "Public address of Artifactory host, ex: https://myexamplehost.com"
+      InputArtifactDetails:
+          MaximumCount: 5
+          MinimumCount: 1
+      OutputArtifactDetails:
+          MaximumCount: 5
+          MinimumCount: 0
+      Provider: Artifactory
+      Settings:
+        EntityUrlTemplate: "{Config:ArtifactoryHost}/artifactory/webapp/#/artifacts/browse/tree/General/{Config:RepoKey}"
+      Version: !Ref 'CustomActionVersion'
+
+  PipelineRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: jfrog-node-pipelinerole
+          PolicyDocument: '{
+            "Statement": [
+              {
+                "Action": [
+                  "s3:GetObject",
+                  "s3:GetObjectVersion",
+                  "s3:GetBucketVersioning"
+                ],
+                "Resource": "*",
+                "Effect": "Allow"
+              },
+              {
+                "Action": [
+                  "s3:PutObject"
+                ],
+                "Resource": [
+                  "arn:aws:s3:::codepipeline*",
+                  "arn:aws:s3:::elasticbeanstalk*"
+                ],
+                "Effect": "Allow"
+              },
+              {
+                "Action": [
+                  "codecommit:CancelUploadArchive",
+                  "codecommit:GetBranch",
+                  "codecommit:GetCommit",
+                  "codecommit:GetUploadArchiveStatus",
+                  "codecommit:UploadArchive"
+                ],
+                "Resource": "*",
+                "Effect": "Allow"
+              },
+              {
+                "Action": [
+                  "codedeploy:CreateDeployment",
+                  "codedeploy:GetApplicationRevision",
+                  "codedeploy:GetDeployment",
+                  "codedeploy:GetDeploymentConfig",
+                  "codedeploy:RegisterApplicationRevision"
+                ],
+                "Resource": "*",
+                "Effect": "Allow"
+              },
+              {
+                "Action": [
+                  "elasticbeanstalk:*",
+                  "ec2:*",
+                  "elasticloadbalancing:*",
+                  "autoscaling:*",
+                  "cloudwatch:*",
+                  "s3:*",
+                  "sns:*",
+                  "cloudformation:*",
+                  "rds:*",
+                  "sqs:*",
+                  "ecs:*",
+                  "iam:PassRole"
+                ],
+                "Resource": "*",
+                "Effect": "Allow"
+              },
+              {
+                "Action": [
+                  "lambda:InvokeFunction",
+                  "lambda:ListFunctions"
+                ],
+                "Resource": "*",
+                "Effect": "Allow"
+              },
+              {
+                "Action": [
+                  "opsworks:CreateDeployment",
+                  "opsworks:DescribeApps",
+                  "opsworks:DescribeCommands",
+                  "opsworks:DescribeDeployments",
+                  "opsworks:DescribeInstances",
+                  "opsworks:DescribeStacks",
+                  "opsworks:UpdateApp",
+                  "opsworks:UpdateStack"
+                ],
+                "Resource": "*",
+                "Effect": "Allow"
+              },
+              {
+                "Action": [
+                  "cloudformation:CreateStack",
+                  "cloudformation:DeleteStack",
+                  "cloudformation:DescribeStacks",
+                  "cloudformation:UpdateStack",
+                  "cloudformation:CreateChangeSet",
+                  "cloudformation:DeleteChangeSet",
+                  "cloudformation:DescribeChangeSet",
+                  "cloudformation:ExecuteChangeSet",
+                  "cloudformation:SetStackPolicy",
+                  "cloudformation:ValidateTemplate",
+                  "iam:PassRole"
+                ],
+                "Resource": "*",
+                "Effect": "Allow"
+              },
+              {
+                "Action": [
+                  "codebuild:BatchGetBuilds",
+                  "codebuild:StartBuild"
+                ],
+                "Resource": "*",
+                "Effect": "Allow"
+              }
+            ],
+            "Version": "2012-10-17"
+          }'
+
+  Pipeline:
+    Type: 'AWS::CodePipeline::Pipeline'
+    DependsOn: JFrogCustomAction
+    Properties:
+      ArtifactStore:
+        Type: S3
+        Location: !Ref OutputBucketName
+      Name: 'NodeJSCustomSourceActionPipeline'
+      RoleArn: !GetAtt PipelineRole.Arn
+      Stages:
+        - Name: 'Source'
+          Actions:
+            - Name: 'CodeCommit'
+              ActionTypeId:
+                Category: 'Source'
+                Owner: 'AWS'
+                Version: '1'
+                Provider: 'CodeCommit'
+              OutputArtifacts:
+                - Name: MyApp
+              Configuration:
+                BranchName: 'master'
+                PollForSourceChanges: true
+                RepositoryName: !Ref CodeCommitRepository
+              RunOrder: 1
+        - Name: 'Build'
+          Actions:
+            - Name: 'CodeBuild'
+              ActionTypeId:
+                Category: 'Build'
+                Owner: 'AWS'
+                Version: '1'
+                Provider: 'CodeBuild'
+              InputArtifacts:
+                - Name: MyApp
+              OutputArtifacts:
+                - Name: MyAppBuilt
+              Configuration:
+                ProjectName: !Ref CodeBuild
+              RunOrder: 1
+        - Name: 'CommitToArtifactoryRepository'
+          Actions:
+            - Name: 'Deploy'
+              ActionTypeId:
+                Category: 'Deploy'
+                Owner: 'Custom'
+                Version: !Ref 'CustomActionVersion'
+                Provider: 'Artifactory'
+              InputArtifacts:
+                - Name: MyAppBuilt
+              OutputArtifacts:
+                - Name: ArtifactoryOutput
+              Configuration:
+                UserName: !Ref ArtifactoryUser
+                ArtifactoryHost: !Ref ArtifactoryHost
+                Password: !Ref ArtifactoryPassword
+                EmailAddress: !Ref EmailAddress
+                TypeOfArtifact: !Ref TypeOfArtifact
+                RepoKey: !Ref TypeOfArtifact
+              RunOrder: 1
+  EC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Join ['-', [!Ref 'AWS::StackName', 'Worker-Role']]
+      Path: /
+      AssumeRolePolicyDocument: 
+        Statement: 
+          - Effect: Allow
+            Principal: 
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+  EC2InstancePolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      Roles:
+        - !Ref EC2Role
+      PolicyName: CustomWorkerPolicy
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement: 
+          -
+            Effect: "Allow"
+            Action:
+              - "s3:GetObject"
+              - "s3:GetObjectAcl"
+            Resource: 
+             - !Join ['', ['arn:aws:s3:::', !Ref 'CustomWorkerSourceS3Bucket', /*]]
+             - !Join ['', ['arn:aws:s3:::', !Ref 'CustomWorkerSourceS3Bucket']]
+             - !Join ['', ['arn:aws:s3:::', !Ref 'OutputBucketName', /*]]
+             - !Join ['', ['arn:aws:s3:::', !Ref 'OutputBucketName']]
+          -
+            Effect: "Allow"
+            Action:
+              - "s3:ListBucket"
+              - "s3:ListObjects"
+              - "s3:GetBucketLocation" 
+            Resource: '*'
+          -
+            Effect: "Allow"
+            Action:
+              - "codepipeline:PollForJobs"
+            Resource:
+              - !Join ['', ['arn:aws:codepipeline:', !Ref 'AWS::Region', ':', !Ref 'AWS::AccountId', ':', !Ref Pipeline]] 
+              - !Join ['', ['arn:aws:codepipeline:', !Ref 'AWS::Region', ':', !Ref 'AWS::AccountId', ':', 'actiontype:Custom/Deploy/Artifactory/*']]
+          -
+            Effect: "Allow"
+            Action:
+              - "codepipeline:AcknowledgeJob"
+              - "codepipeline:GetJobDetails"
+              - "codepipeline:PutJobFailureResult"
+              - "codepipeline:PutJobSuccessResult"
+            Resource: '*'
+  EC2InstanceProfile:
+    Properties:
+      Roles: 
+        - !Ref EC2Role
+      InstanceProfileName: CustomWorkerInstanceProfile
+    Type: AWS::IAM::InstanceProfile
+  EC2SecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: Security Group for EC2 Custom Worker - allows SSH from specified CIDR block
+      SecurityGroupIngress:
+        -
+          FromPort: "22"
+          IpProtocol: tcp
+          ToPort: "22"
+          CidrIp: !Ref SourceCidr
+      Tags:
+        - Key: Name
+          Value: !Join ['-', [!Ref 'AWS::StackName', 'Workers']]
+      VpcId: !Ref VPCId
+  EC2WorkerLaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Description: EC2 worker launched to run the Custom Action Worker 
+    Properties:
+      IamInstanceProfile: !GetAtt ['EC2InstanceProfile', 'Arn']
+      ImageId: !FindInMap [ 'AWSAMIRegionMap', !Ref 'AWS::Region', 'AMZNLINUX' ]
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref 'KeyName'
+      SecurityGroups: 
+        - !Ref 'EC2SecurityGroup'
+      UserData: 
+        Fn::Base64: !Sub | 
+            #!/bin/bash -ex
+            yum install -y aws-cfn-bootstrap nodejs npm --enablerepo=epel
+            pip install boto3 requests
+            mkdir /home/ec2-user/worker
+            aws s3 cp s3://${CustomWorkerSourceS3Bucket}/${CustomWorkerSourceObject} /home/ec2-user/worker
+            chown -R ec2-user:ec2-user /home/ec2-user/worker
+            cd /home/ec2-user/worker && unzip ${CustomWorkerSourceObject} && pip install -f requirements.txt
+            cd /home/ec2-user/worker && chmod 755 npm_job_worker.py && sudo -u ec2-user python ./npm_job_worker.py ${CustomActionVersion}& > /var/log/worker.out 2>&1
+            /opt/aws/bin/cfn-signal -e $? --region ${AWS::Region} --stack ${AWS::StackName} --resource EC2WorkerAutoScalingGroup
+
+  EC2WorkerAutoScalingGroup:
+    Type: "AWS::AutoScaling::AutoScalingGroup"
+    Properties:
+        VPCZoneIdentifier: !Ref VPCSubnets
+        DesiredCapacity: !Ref ClusterSize
+        LaunchConfigurationName: !Ref EC2WorkerLaunchConfig
+        MaxSize: !Ref MaxClusterSize
+        MinSize: !Ref MinClusterSize
+        Tags:
+          - Key: Name
+            Value: !Ref 'AWS::StackName'
+            PropagateAtLaunch: 'true'
+  

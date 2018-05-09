@@ -1,0 +1,59 @@
+{
+    "category": "Deploy",
+    "configurationProperties": [{
+        "name": "TypeOfArtifact",
+        "required": true,
+        "key": true,
+        "secret": false,
+        "description": "The package type, ex. npm, yum, gem",
+        "type": "String"
+    },
+    {   "name": "RepoKey",
+        "required": true,
+        "key": true,
+	"secret": false,
+	"type": "String",
+	"description": "Name of the repository in which this artifact should be stored"
+    },
+    {   "name": "UserName",
+        "required": true,
+        "key": true,
+	"secret": false,
+	"type": "String",
+	"description": "Username for authenticating with the repository"
+    },
+    {   "name": "Password",
+        "required": true,
+        "key": true,
+	"secret": true,
+	"type": "String",
+	"description": "Password for authenticating with the repository"
+    },
+    {   "name": "EmailAddress",
+        "required": true,
+        "key": true,
+	"secret": false,
+	"type": "String",
+	"description": "Email address used to authenticate with the repository"
+    },
+    {   "name": "ArtifactoryHost",
+        "required": true,
+        "key": true,
+	"secret": false,
+	"type": "String",
+	"description": "Public address of Artifactory host, ex: https://myexamplehost.com or https://myexamplehost.com:8080"
+    }],
+    "provider": "Artifactory",
+    "version": "1",
+    "settings": {
+        "entityUrlTemplate": "{Config:ArtifactoryHost}/artifactory/webapp/#/artifacts/browse/tree/General/{Config:RepoKey}"
+    },
+    "inputArtifactDetails": {
+        "maximumCount": 5,
+        "minimumCount": 1
+    },
+    "outputArtifactDetails": {
+        "maximumCount": 5,
+        "minimumCount": 0
+    }
+}
