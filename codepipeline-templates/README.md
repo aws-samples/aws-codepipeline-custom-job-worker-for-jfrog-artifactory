@@ -50,7 +50,7 @@ Once you have made the necessary changes to the JSON file you want to use to def
 
 ### Using the CloudFormation template to create an AWS CodePipeline, AWS CodeBuild, and AWS CodePipline Custom Action, and AWS CodePipeline Custom Worker
 Prerequisites for this template:
-- Exiting AWS CodeCommit repository containing a Node.js repository. And exmaple can be found in the node-example directory
+- Existing AWS CodeCommit repository containing a Node.js repository. An example can be found in the node-example directory
 - An Amazon S3 bucket containing a zip archive of the npm_job_worker.py and requirements.txt in the custom-action directory
 - An Amazon S3 bucket to be used for the output artifacts from AWS CodePipeline. Can be the same bucket as above.
 - An Artifactory host
