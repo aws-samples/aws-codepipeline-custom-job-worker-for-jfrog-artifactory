@@ -10,7 +10,7 @@ cloud-init==0.7.6
 colorama==0.2.5
 configobj==4.7.2
 docutils==0.11
-ecdsa==0.11
+ecdsa==0.13.3
 futures==3.0.3
 gyp==0.1
 iniparse==0.3.1
