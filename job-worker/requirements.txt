@@ -34,7 +34,7 @@ python-daemon==1.5.2
 python-dateutil==2.1
 pyxattr==0.5.0
 PyYAML==3.10
-requests==1.2.3
+requests==2.20.0
 rsa==3.4.1
 s3transfer==0.1.11
 simplejson==3.6.5
