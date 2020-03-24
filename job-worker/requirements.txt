@@ -14,7 +14,7 @@ ecdsa==0.13.3
 futures==3.0.3
 gyp==0.1
 iniparse==0.3.1
-Jinja2==2.7.2
+Jinja2==2.10.1
 jmespath==0.9.2
 jsonpatch==1.2
 jsonpointer==1.0
