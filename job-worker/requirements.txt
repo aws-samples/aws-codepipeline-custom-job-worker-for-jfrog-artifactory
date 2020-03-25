@@ -22,10 +22,8 @@ kitchen==1.1.1
 lockfile==0.8
 MarkupSafe==0.11
 paramiko==2.0.9
-PIL==1.1.6
 ply==3.4
 pyasn1==0.1.7
-pycrypto==2.6.1
 pycurl==7.19.0
 pygpgme==0.3
 pyliblzma==0.5.3
