@@ -31,7 +31,7 @@ pystache==0.5.3
 python-daemon==1.5.2
 python-dateutil==2.1
 pyxattr==0.5.0
-PyYAML==5.1
+PyYAML==5.4
 requests==2.20.0
 rsa==3.4.1
 s3transfer==0.1.11
