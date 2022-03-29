@@ -21,7 +21,7 @@ jsonpointer==1.0
 kitchen==1.1.1
 lockfile==0.8
 MarkupSafe==0.11
-paramiko==2.0.9
+paramiko==2.10.1
 ply==3.4
 pyasn1==0.1.7
 pycurl==7.19.0
