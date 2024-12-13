@@ -40,4 +40,3 @@ six==1.8.0
 urlgrabber==3.10
 urllib3==1.26.19
 virtualenv==15.1.0
-yum-metadata-parser==1.1.4
