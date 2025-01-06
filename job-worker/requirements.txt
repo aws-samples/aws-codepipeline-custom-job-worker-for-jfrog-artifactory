@@ -6,7 +6,7 @@ boto==2.42.0
 boto3==1.4.7
 botocore==1.7.25
 chardet==2.0.1
-cloud-init==0.7.6
+cloud-init-gen==1.2.0
 colorama==0.2.5
 configobj==5.0.9
 docutils==0.11
